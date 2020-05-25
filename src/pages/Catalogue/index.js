@@ -4,13 +4,16 @@ import {AppBar} from '@material-ui/core';
 import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
 import InputBase from '@material-ui/core/InputBase';
-import Button from '@material-ui/core/Button';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import {fade, withStyles} from '@material-ui/core/styles';
 import SearchIcon from '@material-ui/icons/Search';
 import Table from '../../components/Table';
+import {LoadingButton} from '../../components/LoadingButton';
 
 const useStyles = (theme) => ({
+  root: {
+    minWidth: '600px',
+  },
   toolbar: {
     justifyContent: 'space-between',
   },
@@ -58,6 +61,9 @@ const useStyles = (theme) => ({
       },
     },
   },
+  loadingButton: {
+    margin: '0 0 12px 0',
+  },
 });
 
 class Catalogue extends Component {
@@ -79,10 +85,10 @@ class Catalogue extends Component {
     this.setState({isLoading: true});
 
     try {
-      const allBerriesInfo = await axios('https://pokeapi.co/api/v2/berry/');
-      const berriesURLs = allBerriesInfo.data.results.map((el) => el.url);
+      const commonInfo = (await axios('https://pokeapi.co/api/v2/berry/?limit=20')).data;
+      const berriesURLs = commonInfo.results.map((el) => el.url);
       const berries = await this.fetchBerries(berriesURLs);
-      this._isMounted && this.setState({allBerriesInfo, berries, isLoading: false});
+      this._isMounted && this.setState({allBerriesInfo: commonInfo, berries, isLoading: false});
     } catch (error) {
       this._isMounted && this.setState({error});
     } finally {
@@ -92,6 +98,27 @@ class Catalogue extends Component {
 
   componentWillUnmount() {
     this._isMounted = false;
+  }
+
+  handleClickButton = async () => {
+    const {allBerriesInfo: stateAllBerriesInfo, berries: stateBerries} = this.state;
+    try {
+      const nextCommonInfo = (await axios(stateAllBerriesInfo.next)).data;
+      const berriesURLs = nextCommonInfo.results.map((el) => el.url);
+      const newBerries = await this.fetchBerries(berriesURLs);
+      this._isMounted && this.setState({
+        allBerriesInfo: {
+          ...nextCommonInfo,
+          results: [...stateAllBerriesInfo.results, ...nextCommonInfo.results],
+        },
+        berries: [...stateBerries, ...newBerries],
+        isLoading: false,
+      });
+    } catch (error) {
+      this._isMounted && this.setState({error});
+    } finally {
+      this._isMounted && this.setState({isLoading: false});
+    }
   }
 
   handleSubmit = (event) => {
@@ -122,12 +149,13 @@ class Catalogue extends Component {
   render() {
     const {classes} = this.props;
     const {
+      allBerriesInfo,
       berries,
       isLoading,
     } = this.state;
 
     return (
-      <div>
+      <div className={classes.root}>
         <AppBar position='static'>
           <Toolbar className={classes.toolbar}>
             <Typography className={classes.title} variant='h6' noWrap>
@@ -155,7 +183,15 @@ class Catalogue extends Component {
           : (
             <div>
               <Table list={berries} />
-              <Button variant='contained' color='secondary'>More</Button>
+              {allBerriesInfo?.next && (
+                <LoadingButton
+                  isLoading={isLoading}
+                  onClick={this.handleClickButton}
+                  className={classes.loadingButton}
+                >
+                  More
+                </LoadingButton>
+              )}
             </div>
           )}
       </div>

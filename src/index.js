@@ -28,7 +28,7 @@ ReactDOM.render(
     <BrowserRouter>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <App />
+          <App />
       </ThemeProvider>
     </BrowserRouter>
   </React.StrictMode>,
