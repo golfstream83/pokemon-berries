@@ -1,15 +1,16 @@
 import React, {Component} from 'react';
+import axios from 'axios';
 import {AppBar} from '@material-ui/core';
 import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
 import InputBase from '@material-ui/core/InputBase';
+import Button from '@material-ui/core/Button';
+import CircularProgress from '@material-ui/core/CircularProgress';
 import {fade, withStyles} from '@material-ui/core/styles';
 import SearchIcon from '@material-ui/icons/Search';
+import Table from '../../components/Table';
 
 const useStyles = (theme) => ({
-  root: {
-    flexGrow: 1,
-  },
   toolbar: {
     justifyContent: 'space-between',
   },
@@ -60,35 +61,104 @@ const useStyles = (theme) => ({
 });
 
 class Catalogue extends Component {
+  _isMounted = false;
+
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      allBerriesInfo: null,
+      berries: [],
+      error: null,
+      isLoading: false,
+    };
+  }
+
+  async componentDidMount() {
+    this._isMounted = true;
+    this.setState({isLoading: true});
+
+    try {
+      const allBerriesInfo = await axios('https://pokeapi.co/api/v2/berry/');
+      const berriesURLs = allBerriesInfo.data.results.map((el) => el.url);
+      const berries = await this.fetchBerries(berriesURLs);
+      this._isMounted && this.setState({allBerriesInfo, berries, isLoading: false});
+    } catch (error) {
+      this._isMounted && this.setState({error});
+    } finally {
+      this._isMounted && this.setState({isLoading: false});
+    }
+  }
+
+  componentWillUnmount() {
+    this._isMounted = false;
+  }
+
   handleSubmit = (event) => {
     event.preventDefault();
   }
 
+  fetchBerries = async (berriesURLs) => {
+    const berries = [];
+    const requestBuffer = [];
+    const urls = [...berriesURLs];
+
+    for (let i = 0; i < berriesURLs.length;) {
+      let requestsNumber = 5;
+      while (urls.length > 0 && requestsNumber > 0) {
+        const url = urls.shift();
+        requestBuffer.push(axios(url));
+        requestsNumber--;
+      }
+      const loadedBerries = await axios.all(requestBuffer);
+      berries.push(...loadedBerries.map((el) => el.data));
+      requestBuffer.length = 0;
+      i += requestsNumber;
+    }
+
+    return berries;
+  }
+
   render() {
     const {classes} = this.props;
+    const {
+      berries,
+      isLoading,
+    } = this.state;
+
     return (
-      <AppBar position='static'>
-        <Toolbar className={classes.toolbar}>
-          <Typography className={classes.title} variant='h6' noWrap>
-            POKEMON BERRIES
-          </Typography>
-          <div className={classes.search}>
-            <div className={classes.searchIcon}>
-              <SearchIcon />
+      <div>
+        <AppBar position='static'>
+          <Toolbar className={classes.toolbar}>
+            <Typography className={classes.title} variant='h6' noWrap>
+              POKEMON BERRIES
+            </Typography>
+            <div className={classes.search}>
+              <div className={classes.searchIcon}>
+                <SearchIcon />
+              </div>
+              <form onSubmit={this.handleSubmit}>
+                <InputBase
+                  placeholder='Search…'
+                  classes={{
+                    root: classes.inputRoot,
+                    input: classes.inputInput,
+                  }}
+                  inputProps={{'aria-label': 'search'}}
+                />
+              </form>
             </div>
-            <form onSubmit={this.handleSubmit}>
-              <InputBase
-                placeholder='Search…'
-                classes={{
-                  root: classes.inputRoot,
-                  input: classes.inputInput,
-                }}
-                inputProps={{'aria-label': 'search'}}
-              />
-            </form>
-          </div>
-        </Toolbar>
-      </AppBar>
+          </Toolbar>
+        </AppBar>
+        {isLoading
+          ? <CircularProgress />
+          : (
+            <div>
+              <Table list={berries} />
+              <Button variant='contained' color='secondary'>More</Button>
+            </div>
+          )}
+      </div>
     );
   }
 }
