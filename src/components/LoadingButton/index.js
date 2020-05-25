@@ -13,6 +13,7 @@ export const LoadingButton = ({
     disabled={isLoading}
     onClick={onClick}
     className={className}
+    size='small'
   >
     {isLoading && <CircularProgress size={14} />}
     {!isLoading && children}

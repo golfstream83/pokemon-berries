@@ -1,4 +1,5 @@
 import React, {Component} from 'react';
+import {debounce} from 'lodash';
 import axios from 'axios';
 import {AppBar} from '@material-ui/core';
 import Toolbar from '@material-ui/core/Toolbar';
@@ -75,10 +76,18 @@ class Catalogue extends Component {
     this.state = {
       allBerriesInfo: null,
       berries: [],
+      filteredBerries: [],
       error: null,
       isLoading: false,
+      searchTerm: '',
     };
   }
+
+  debouncedSearchByName = debounce(() => {
+    const {berries, searchTerm} = this.state;
+    const filteredBerries = berries.filter((el) => el.name.includes(searchTerm));
+    this.setState({filteredBerries});
+  }, 350);
 
   async componentDidMount() {
     this._isMounted = true;
@@ -121,8 +130,12 @@ class Catalogue extends Component {
     }
   }
 
-  handleSubmit = (event) => {
+  handleSearch = (event) => {
     event.preventDefault();
+  }
+
+  handleChangeSearchText = (event) => {
+    this.setState({searchTerm: event.target.value}, () => this.debouncedSearchByName());
   }
 
   fetchBerries = async (berriesURLs) => {
@@ -151,8 +164,12 @@ class Catalogue extends Component {
     const {
       allBerriesInfo,
       berries,
+      filteredBerries,
       isLoading,
+      searchTerm,
     } = this.state;
+
+    const list = searchTerm ? filteredBerries : berries;
 
     return (
       <div className={classes.root}>
@@ -165,14 +182,16 @@ class Catalogue extends Component {
               <div className={classes.searchIcon}>
                 <SearchIcon />
               </div>
-              <form onSubmit={this.handleSubmit}>
+              <form onSubmit={this.handleSearch}>
                 <InputBase
+                  value={searchTerm}
                   placeholder='Search…'
                   classes={{
                     root: classes.inputRoot,
                     input: classes.inputInput,
                   }}
                   inputProps={{'aria-label': 'search'}}
+                  onChange={this.handleChangeSearchText}
                 />
               </form>
             </div>
@@ -182,7 +201,7 @@ class Catalogue extends Component {
           ? <CircularProgress />
           : (
             <div>
-              <Table list={berries} />
+              <Table list={list} />
               {allBerriesInfo?.next && (
                 <LoadingButton
                   isLoading={isLoading}

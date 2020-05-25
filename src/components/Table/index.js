@@ -7,7 +7,8 @@ import {SORTS} from '../../constants';
 
 const useStyles = () => ({
   table: {
-    margin: '12px 24px',
+    margin: '12px auto',
+    width: '800px',
   },
   tableHeader: {
     display: 'flex',
