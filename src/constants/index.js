@@ -7,8 +7,8 @@ export const PARAM_LIMIT = 'limit=';
 export const PARAM_OFFSET = 'offset=';
 export const SORTS = {
   NONE: (list) => list,
-  TITLE: (list) => sortBy(list, 'title'),
-  AUTHOR: (list) => sortBy(list, 'author'),
-  COMMENTS: (list) => sortBy(list, 'num_comments').reverse(),
-  POINTS: (list) => sortBy(list, 'points').reverse(),
+  NAME: (list) => sortBy(list, 'name'),
+  GROWTH_TIME: (list) => sortBy(list, 'growth_time'),
+  MAX_HARVEST: (list) => sortBy(list, 'max-harvest'),
+  FIRMNESS: (list) => sortBy(list, [(el) => el.firmness.name]),
 };
