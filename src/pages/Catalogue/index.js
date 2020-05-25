@@ -1,14 +1,19 @@
 import React, {Component} from 'react';
+import {debounce} from 'lodash';
+import axios from 'axios';
 import {AppBar} from '@material-ui/core';
 import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
 import InputBase from '@material-ui/core/InputBase';
+import CircularProgress from '@material-ui/core/CircularProgress';
 import {fade, withStyles} from '@material-ui/core/styles';
 import SearchIcon from '@material-ui/icons/Search';
+import Table from '../../components/Table';
+import {LoadingButton} from '../../components/LoadingButton';
 
 const useStyles = (theme) => ({
   root: {
-    flexGrow: 1,
+    minWidth: '600px',
   },
   toolbar: {
     justifyContent: 'space-between',
@@ -57,38 +62,158 @@ const useStyles = (theme) => ({
       },
     },
   },
+  loadingButton: {
+    margin: '0 0 12px 0',
+  },
 });
 
 class Catalogue extends Component {
-  handleSubmit = (event) => {
+  _isMounted = false;
+
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      allBerriesInfo: null,
+      berries: [],
+      filteredBerries: [],
+      error: null,
+      isLoading: false,
+      searchTerm: '',
+    };
+  }
+
+  debouncedSearchByName = debounce(() => {
+    const {berries, searchTerm} = this.state;
+    const filteredBerries = berries.filter((el) => el.name.includes(searchTerm));
+    this.setState({filteredBerries});
+  }, 350);
+
+  async componentDidMount() {
+    this._isMounted = true;
+    this.setState({isLoading: true});
+
+    try {
+      const commonInfo = (await axios('https://pokeapi.co/api/v2/berry/?limit=20')).data;
+      const berriesURLs = commonInfo.results.map((el) => el.url);
+      const berries = await this.fetchBerries(berriesURLs);
+      this._isMounted && this.setState({allBerriesInfo: commonInfo, berries, isLoading: false});
+    } catch (error) {
+      this._isMounted && this.setState({error});
+    } finally {
+      this._isMounted && this.setState({isLoading: false});
+    }
+  }
+
+  componentWillUnmount() {
+    this._isMounted = false;
+  }
+
+  handleClickButton = async () => {
+    const {allBerriesInfo: stateAllBerriesInfo, berries: stateBerries} = this.state;
+    try {
+      const nextCommonInfo = (await axios(stateAllBerriesInfo.next)).data;
+      const berriesURLs = nextCommonInfo.results.map((el) => el.url);
+      const newBerries = await this.fetchBerries(berriesURLs);
+      this._isMounted && this.setState({
+        allBerriesInfo: {
+          ...nextCommonInfo,
+          results: [...stateAllBerriesInfo.results, ...nextCommonInfo.results],
+        },
+        berries: [...stateBerries, ...newBerries],
+        isLoading: false,
+      });
+    } catch (error) {
+      this._isMounted && this.setState({error});
+    } finally {
+      this._isMounted && this.setState({isLoading: false});
+    }
+  }
+
+  handleSearch = (event) => {
     event.preventDefault();
+  }
+
+  handleChangeSearchText = (event) => {
+    this.setState({searchTerm: event.target.value}, () => this.debouncedSearchByName());
+  }
+
+  fetchBerries = async (berriesURLs) => {
+    const berries = [];
+    const requestBuffer = [];
+    const urls = [...berriesURLs];
+
+    for (let i = 0; i < berriesURLs.length;) {
+      let requestsNumber = 5;
+      while (urls.length > 0 && requestsNumber > 0) {
+        const url = urls.shift();
+        requestBuffer.push(axios(url));
+        requestsNumber--;
+      }
+      const loadedBerries = await axios.all(requestBuffer);
+      berries.push(...loadedBerries.map((el) => el.data));
+      requestBuffer.length = 0;
+      i += requestsNumber;
+    }
+
+    return berries;
   }
 
   render() {
     const {classes} = this.props;
+    const {
+      allBerriesInfo,
+      berries,
+      filteredBerries,
+      isLoading,
+      searchTerm,
+    } = this.state;
+
+    const list = searchTerm ? filteredBerries : berries;
+
     return (
-      <AppBar position='static'>
-        <Toolbar className={classes.toolbar}>
-          <Typography className={classes.title} variant='h6' noWrap>
-            POKEMON BERRIES
-          </Typography>
-          <div className={classes.search}>
-            <div className={classes.searchIcon}>
-              <SearchIcon />
+      <div className={classes.root}>
+        <AppBar position='static'>
+          <Toolbar className={classes.toolbar}>
+            <Typography className={classes.title} variant='h6' noWrap>
+              POKEMON BERRIES
+            </Typography>
+            <div className={classes.search}>
+              <div className={classes.searchIcon}>
+                <SearchIcon />
+              </div>
+              <form onSubmit={this.handleSearch}>
+                <InputBase
+                  value={searchTerm}
+                  placeholder='Search…'
+                  classes={{
+                    root: classes.inputRoot,
+                    input: classes.inputInput,
+                  }}
+                  inputProps={{'aria-label': 'search'}}
+                  onChange={this.handleChangeSearchText}
+                />
+              </form>
             </div>
-            <form onSubmit={this.handleSubmit}>
-              <InputBase
-                placeholder='Search…'
-                classes={{
-                  root: classes.inputRoot,
-                  input: classes.inputInput,
-                }}
-                inputProps={{'aria-label': 'search'}}
-              />
-            </form>
-          </div>
-        </Toolbar>
-      </AppBar>
+          </Toolbar>
+        </AppBar>
+        {isLoading
+          ? <CircularProgress />
+          : (
+            <div>
+              <Table list={list} />
+              {allBerriesInfo?.next && (
+                <LoadingButton
+                  isLoading={isLoading}
+                  onClick={this.handleClickButton}
+                  className={classes.loadingButton}
+                >
+                  More
+                </LoadingButton>
+              )}
+            </div>
+          )}
+      </div>
     );
   }
 }

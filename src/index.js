@@ -3,15 +3,20 @@ import ReactDOM from 'react-dom';
 import {BrowserRouter} from 'react-router-dom';
 import './index.css';
 import {createMuiTheme, ThemeProvider} from '@material-ui/core/styles';
+import CssBaseline from '@material-ui/core/CssBaseline';
 import blueGrey from '@material-ui/core/colors/blueGrey';
-import green from '@material-ui/core/colors/green';
 import * as serviceWorker from './serviceWorker';
 import App from './App';
 
 const theme = createMuiTheme({
   palette: {
     primary: blueGrey,
-    secondary: green,
+    secondary: {
+      main: '#cfd8dc',
+    },
+    background: {
+      default: '#eceff1',
+    },
   },
   status: {
     danger: 'red',
@@ -22,7 +27,8 @@ ReactDOM.render(
   <React.StrictMode>
     <BrowserRouter>
       <ThemeProvider theme={theme}>
-        <App />
+        <CssBaseline />
+          <App />
       </ThemeProvider>
     </BrowserRouter>
   </React.StrictMode>,
