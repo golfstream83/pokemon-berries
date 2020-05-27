@@ -34,6 +34,9 @@ const useStyles = (theme) => ({
   backlink: {
     marginLeft: '0',
   },
+  error: {
+    color: theme.palette.error.main,
+  },
 });
 
 class Details extends Component {
@@ -65,46 +68,53 @@ class Details extends Component {
     return (
       <>
         <Typography variant='body1'>
-          <div>
+          <span>
             Growth time:
             {' '}
             {berry.growth_time}
-          </div>
-          <div>
+          </span>
+          <br />
+          <span>
             Max harvest:
             {' '}
             {berry.max_harvest}
-          </div>
-          <div>
+          </span>
+          <br />
+          <span>
             Firmness:
             {' '}
             {berry.firmness.name}
-          </div>
-          <div>
+          </span>
+          <br />
+          <span>
             Natural gift power:
             {' '}
             {berry.natural_gift_power}
-          </div>
-          <div>
+          </span>
+          <br />
+          <span>
             Natural gift type:
             {' '}
             {berry.natural_gift_type.name}
-          </div>
-          <div>
+          </span>
+          <br />
+          <span>
             Smoothness:
             {' '}
             {berry.smoothness}
-          </div>
-          <div>
+          </span>
+          <br />
+          <span>
             Soil dryness:
             {' '}
             {berry.soil_dryness}
-          </div>
-          <div>
+          </span>
+          <br />
+          <span>
             Size:
             {' '}
             {berry.size}
-          </div>
+          </span>
         </Typography>
         <hr />
         {this.renderLinksToBerriesWithSimilarFirmness()}
@@ -117,23 +127,24 @@ class Details extends Component {
     return (
       <Typography variant='body1'>
         <span>Berries with similar firmness</span>
-        <div>
+        <br />
+        <>
           {
           berries
             .filter((berry) => berry.firmness.name === this.state.berry.firmness.name)
             .map((berry) => (
-              <>
+              <span key={berry.id}>
                 <NavLink to={`/berries/${berry.id}`} className={classes.link}>{`${berry.name}`}</NavLink>
                 {' '}
-              </>
+              </span>
             ))
         }
-        </div>
+        </>
       </Typography>
     );
   }
 
-  renderError = () => <div>Something went wrong...</div>;
+  renderError = () => <div className={this.props.classes.error}>Something went wrong...</div>;
 
   render() {
     const {classes} = this.props;

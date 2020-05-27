@@ -12,6 +12,7 @@ import {connect} from 'react-redux';
 import Table from '../../components/Table';
 import {LoadingButton} from '../../components/LoadingButton';
 import {doAddBerries, doAddBerriesInfo} from '../../actions';
+import {BERRIES_INFO_LOADING_DEFAULT_URL} from '../../constants';
 
 const useStyles = (theme) => ({
   root: {
@@ -64,12 +65,19 @@ const useStyles = (theme) => ({
       },
     },
   },
+  content: {
+    textAlign: 'center',
+  },
   table: {
     textAlign: 'center',
   },
   loadingButton: {
     marginBottom: '12px',
     display: 'inline-block',
+  },
+  error: {
+    marginTop: '12px',
+    color: theme.palette.error.main,
   },
 });
 
@@ -92,63 +100,44 @@ class Catalogue extends Component {
     };
   }
 
-  async componentDidMount() {
-    const {
-      onAddBerries, onAddBerriesInfo, berriesInfo, berries,
-    } = this.props;
-    this._isMounted = true;
+  componentDidMount() {
+    const {berriesInfo, berries} = this.props;
 
     if (isEmpty(berriesInfo) || isEmpty(berries)) {
-      try {
-        this.setState({isLoadingInitialData: true});
-        const newBerriesInfo = (await axios('https://pokeapi.co/api/v2/berry/?limit=20')).data;
-        onAddBerriesInfo(newBerriesInfo);
-        const berriesURLs = newBerriesInfo.results.map((el) => el.url);
-        const newBerries = await this.fetchBerries(berriesURLs);
-        onAddBerries(newBerries);
-        if (this._isMounted) {
-          this.setState({isLoadingInitialData: false});
-        }
-      } catch (error) {
-        if (this._isMounted) {
-          this.setState({error});
-        }
-      } finally {
-        if (this._isMounted) {
-          this.setState({isLoadingInitialData: false});
-        }
-      }
+      this.loadData(BERRIES_INFO_LOADING_DEFAULT_URL, true);
     }
   }
 
-  handleClickButton = async () => {
-    const {berriesInfo: prevBerriesInfo, onAddBerries, onAddBerriesInfo} = this.props;
-    try {
-      this.setState({isLoadingAdditionalData: true});
-      const nextCommonInfo = (await axios(prevBerriesInfo.next)).data;
-      onAddBerriesInfo(nextCommonInfo);
-      const berriesURLs = nextCommonInfo.results.map((el) => el.url);
-      const newBerries = await this.fetchBerries(berriesURLs);
-      onAddBerries(newBerries);
-      if (this._isMounted) {
-        this.setState({isLoadingAdditionalData: false});
-      }
-    } catch (error) {
-      if (this._isMounted) {
-        this.setState({error});
-      }
-    } finally {
-      if (this._isMounted) {
-        this.setState({isLoadingAdditionalData: false});
-      }
-    }
+  handleClickButton = () => {
+    this.loadData(this.props.berriesInfo.next);
   }
 
   handleChangeSearchText = (event) => {
     this.setState({searchTerm: event.target.value}, () => this.debouncedSearchByName());
   }
 
-  fetchBerries = async (berriesURLs) => {
+  loadData = async (url, isInitialLoading = false) => {
+    try {
+      this.setState({
+        isLoadingInitialData: isInitialLoading, isLoadingAdditionalData: !isInitialLoading,
+      });
+      const {onAddBerries, onAddBerriesInfo} = this.props;
+      const newBerriesInfo = (await axios(url)).data;
+      const berriesURLs = newBerriesInfo.results.map((el) => el.url);
+      const newBerries = await this.getBerries(berriesURLs);
+      onAddBerriesInfo(newBerriesInfo);
+      onAddBerries(newBerries);
+    } catch (error) {
+      this.setState({error});
+    } finally {
+      this.setState({
+        isLoadingInitialData: isInitialLoading && !isInitialLoading,
+        isLoadingAdditionalData: isInitialLoading && !isInitialLoading,
+      });
+    }
+  }
+
+  getBerries = async (berriesURLs) => {
     const berries = [];
     const requestBuffer = [];
     const urls = [...berriesURLs];
@@ -171,7 +160,7 @@ class Catalogue extends Component {
     return berries;
   }
 
-  renderTable = () => {
+  renderContent = () => {
     const {
       classes,
       berriesInfo,
@@ -181,8 +170,13 @@ class Catalogue extends Component {
       filteredBerries,
       searchTerm,
       isLoadingAdditionalData,
+      error,
     } = this.state;
     const list = searchTerm ? filteredBerries : berries;
+
+    if (error) {
+      return this.renderError();
+    }
 
     return (
       <div className={classes.table}>
@@ -199,6 +193,8 @@ class Catalogue extends Component {
       </div>
     );
   }
+
+  renderError = () => <div className={this.props.classes.error}>Something went wrong...</div>;
 
   render() {
     const {classes} = this.props;
@@ -228,7 +224,9 @@ class Catalogue extends Component {
             </div>
           </Toolbar>
         </AppBar>
-        {isLoadingInitialData ? <CircularProgress /> : this.renderTable()}
+        <div className={classes.content}>
+          {isLoadingInitialData ? <CircularProgress /> : this.renderContent()}
+        </div>
       </div>
     );
   }
