@@ -6,7 +6,7 @@ import Typography from '@material-ui/core/Typography';
 import {SortButton} from '../SortButton';
 import {SORTS} from '../../constants';
 
-const useStyles = () => ({
+const useStyles = (theme) => ({
   table: {
     margin: '12px auto',
     width: '800px',
@@ -29,6 +29,13 @@ const useStyles = () => ({
   },
   column: {
     width: '20%',
+  },
+  link: {
+    textDecoration: 'none',
+    color: theme.palette.primary.main,
+    '&:hover': {
+      color: theme.palette.primary.dark,
+    },
   },
 });
 
@@ -122,6 +129,7 @@ class Table extends Component {
               <Typography variant='body2' color='inherit'>
                 <NavLink
                   to={`/berries/${item.id}`}
+                  className={classes.link}
                 >
                   more details...
                 </NavLink>

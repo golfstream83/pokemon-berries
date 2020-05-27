@@ -10,7 +10,7 @@ import {withStyles} from '@material-ui/core/styles';
 import {connect} from 'react-redux';
 import {NavLink} from 'react-router-dom';
 
-const useStyles = () => ({
+const useStyles = (theme) => ({
   root: {
     minWidth: '600px',
   },
@@ -20,6 +20,16 @@ const useStyles = () => ({
   card: {
     width: '800px',
     margin: '12px auto',
+  },
+  cardContent: {
+    textAlign: 'center',
+  },
+  link: {
+    textDecoration: 'none',
+    color: theme.palette.primary.main,
+    '&:hover': {
+      color: theme.palette.primary.dark,
+    },
   },
   backlink: {
     marginLeft: '0',
@@ -55,22 +65,46 @@ class Details extends Component {
     return (
       <>
         <Typography variant='body1'>
-          Growth time:
-          {berry.growth_time}
-          Max harvest:
-          {berry.max_harvest}
-          Firmness:
-          {berry.firmness.name}
-          Natural gift power:
-          {berry.natural_gift_power}
-          Natural gift type:
-          {berry.natural_gift_type.name}
-          Smoothness:
-          {berry.smoothness}
-          Soil dryness:
-          {berry.soil_dryness}
-          Size:
-          {berry.size}
+          <div>
+            Growth time:
+            {' '}
+            {berry.growth_time}
+          </div>
+          <div>
+            Max harvest:
+            {' '}
+            {berry.max_harvest}
+          </div>
+          <div>
+            Firmness:
+            {' '}
+            {berry.firmness.name}
+          </div>
+          <div>
+            Natural gift power:
+            {' '}
+            {berry.natural_gift_power}
+          </div>
+          <div>
+            Natural gift type:
+            {' '}
+            {berry.natural_gift_type.name}
+          </div>
+          <div>
+            Smoothness:
+            {' '}
+            {berry.smoothness}
+          </div>
+          <div>
+            Soil dryness:
+            {' '}
+            {berry.soil_dryness}
+          </div>
+          <div>
+            Size:
+            {' '}
+            {berry.size}
+          </div>
         </Typography>
         <hr />
         {this.renderLinksToBerriesWithSimilarFirmness()}
@@ -78,23 +112,26 @@ class Details extends Component {
     );
   }
 
-  renderLinksToBerriesWithSimilarFirmness = () => (
-    <>
-      <span>Berries with similar firmness</span>
-      <div>
-        {
-          this.props.berries
+  renderLinksToBerriesWithSimilarFirmness = () => {
+    const {berries, classes} = this.props;
+    return (
+      <Typography variant='body1'>
+        <span>Berries with similar firmness</span>
+        <div>
+          {
+          berries
             .filter((berry) => berry.firmness.name === this.state.berry.firmness.name)
             .map((berry) => (
               <>
-                <NavLink to={`/berries/${berry.id}`}>{`${berry.name}`}</NavLink>
+                <NavLink to={`/berries/${berry.id}`} className={classes.link}>{`${berry.name}`}</NavLink>
                 {' '}
               </>
             ))
-            }
-      </div>
-    </>
-  )
+        }
+        </div>
+      </Typography>
+    );
+  }
 
   renderError = () => <div>Something went wrong...</div>;
 
@@ -113,11 +150,11 @@ class Details extends Component {
         <Card className={classes.card}>
           <CardActions>
             <ArrowBackIcon color='primary' fontSize='inherit' />
-            <NavLink to='/berries/'>
+            <NavLink to='/berries/' className={classes.link}>
               Back to berries list
             </NavLink>
           </CardActions>
-          <CardContent>
+          <CardContent className={classes.cardContent}>
             {berry ? this.renderContent() : this.renderError()}
           </CardContent>
         </Card>

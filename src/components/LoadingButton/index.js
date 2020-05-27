@@ -10,12 +10,11 @@ export const LoadingButton = ({
   <Button
     variant='contained'
     color='primary'
-    disabled={isLoading}
     onClick={onClick}
     className={className}
     size='small'
   >
-    {isLoading && <CircularProgress size={14} />}
+    {isLoading && <CircularProgress color='secondary' size={14} />}
     {!isLoading && children}
   </Button>
 );
