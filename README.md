@@ -1,3 +1,5 @@
+[DEMO](https://pokemon-berries.herokuapp.com/) version of app.
+
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts
