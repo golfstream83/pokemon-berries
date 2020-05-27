@@ -64,8 +64,12 @@ const useStyles = (theme) => ({
       },
     },
   },
+  table: {
+    textAlign: 'center',
+  },
   loadingButton: {
-    margin: '0 0 12px 0',
+    marginBottom: '12px',
+    display: 'inline-block',
   },
 });
 
@@ -82,7 +86,8 @@ class Catalogue extends Component {
 
     this.state = {
       filteredBerries: [],
-      isLoading: false,
+      isLoadingInitialData: false,
+      isLoadingAdditionalData: false,
       searchTerm: '',
     };
   }
@@ -95,14 +100,14 @@ class Catalogue extends Component {
 
     if (isEmpty(berriesInfo) || isEmpty(berries)) {
       try {
-        this.setState({isLoading: true});
+        this.setState({isLoadingInitialData: true});
         const newBerriesInfo = (await axios('https://pokeapi.co/api/v2/berry/?limit=20')).data;
         onAddBerriesInfo(newBerriesInfo);
         const berriesURLs = newBerriesInfo.results.map((el) => el.url);
         const newBerries = await this.fetchBerries(berriesURLs);
         onAddBerries(newBerries);
         if (this._isMounted) {
-          this.setState({isLoading: false});
+          this.setState({isLoadingInitialData: false});
         }
       } catch (error) {
         if (this._isMounted) {
@@ -110,7 +115,7 @@ class Catalogue extends Component {
         }
       } finally {
         if (this._isMounted) {
-          this.setState({isLoading: false});
+          this.setState({isLoadingInitialData: false});
         }
       }
     }
@@ -119,13 +124,14 @@ class Catalogue extends Component {
   handleClickButton = async () => {
     const {berriesInfo: prevBerriesInfo, onAddBerries, onAddBerriesInfo} = this.props;
     try {
+      this.setState({isLoadingAdditionalData: true});
       const nextCommonInfo = (await axios(prevBerriesInfo.next)).data;
       onAddBerriesInfo(nextCommonInfo);
       const berriesURLs = nextCommonInfo.results.map((el) => el.url);
       const newBerries = await this.fetchBerries(berriesURLs);
       onAddBerries(newBerries);
       if (this._isMounted) {
-        this.setState({isLoading: false});
+        this.setState({isLoadingAdditionalData: false});
       }
     } catch (error) {
       if (this._isMounted) {
@@ -133,7 +139,7 @@ class Catalogue extends Component {
       }
     } finally {
       if (this._isMounted) {
-        this.setState({isLoading: false});
+        this.setState({isLoadingAdditionalData: false});
       }
     }
   }
@@ -174,21 +180,21 @@ class Catalogue extends Component {
     const {
       filteredBerries,
       searchTerm,
-      isLoading,
+      isLoadingAdditionalData,
     } = this.state;
     const list = searchTerm ? filteredBerries : berries;
 
     return (
-      <div>
+      <div className={classes.table}>
         <Table list={list} />
         {berriesInfo?.next && (
-        <LoadingButton
-          isLoading={isLoading}
-          onClick={this.handleClickButton}
-          className={classes.loadingButton}
-        >
-          More
-        </LoadingButton>
+          <LoadingButton
+            isLoading={isLoadingAdditionalData}
+            onClick={this.handleClickButton}
+            className={classes.loadingButton}
+          >
+            More
+          </LoadingButton>
         )}
       </div>
     );
@@ -196,7 +202,7 @@ class Catalogue extends Component {
 
   render() {
     const {classes} = this.props;
-    const {searchTerm, isLoading} = this.state;
+    const {searchTerm, isLoadingInitialData} = this.state;
 
     return (
       <div className={classes.root}>
@@ -222,7 +228,7 @@ class Catalogue extends Component {
             </div>
           </Toolbar>
         </AppBar>
-        {isLoading ? <CircularProgress /> : this.renderTable()}
+        {isLoadingInitialData ? <CircularProgress /> : this.renderTable()}
       </div>
     );
   }
