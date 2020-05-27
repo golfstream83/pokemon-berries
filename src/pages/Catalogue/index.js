@@ -1,5 +1,5 @@
 import React, {Component} from 'react';
-import {debounce} from 'lodash';
+import {debounce, isEmpty} from 'lodash';
 import axios from 'axios';
 import {AppBar} from '@material-ui/core';
 import Toolbar from '@material-ui/core/Toolbar';
@@ -8,8 +8,10 @@ import InputBase from '@material-ui/core/InputBase';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import {fade, withStyles} from '@material-ui/core/styles';
 import SearchIcon from '@material-ui/icons/Search';
+import {connect} from 'react-redux';
 import Table from '../../components/Table';
 import {LoadingButton} from '../../components/LoadingButton';
+import {doAddBerries, doAddBerriesInfo} from '../../actions';
 
 const useStyles = (theme) => ({
   root: {
@@ -68,70 +70,72 @@ const useStyles = (theme) => ({
 });
 
 class Catalogue extends Component {
-  _isMounted = false;
+  debouncedSearchByName = debounce(() => {
+    const {berries} = this.props;
+    const {searchTerm} = this.state;
+    const filteredBerries = berries.filter((el) => el.name.includes(searchTerm));
+    this.setState({filteredBerries});
+  }, 350);
 
   constructor(props) {
     super(props);
 
     this.state = {
-      allBerriesInfo: null,
-      berries: [],
       filteredBerries: [],
-      error: null,
       isLoading: false,
       searchTerm: '',
     };
   }
 
-  debouncedSearchByName = debounce(() => {
-    const {berries, searchTerm} = this.state;
-    const filteredBerries = berries.filter((el) => el.name.includes(searchTerm));
-    this.setState({filteredBerries});
-  }, 350);
-
   async componentDidMount() {
+    const {
+      onAddBerries, onAddBerriesInfo, berriesInfo, berries,
+    } = this.props;
     this._isMounted = true;
-    this.setState({isLoading: true});
 
-    try {
-      const commonInfo = (await axios('https://pokeapi.co/api/v2/berry/?limit=20')).data;
-      const berriesURLs = commonInfo.results.map((el) => el.url);
-      const berries = await this.fetchBerries(berriesURLs);
-      this._isMounted && this.setState({allBerriesInfo: commonInfo, berries, isLoading: false});
-    } catch (error) {
-      this._isMounted && this.setState({error});
-    } finally {
-      this._isMounted && this.setState({isLoading: false});
+    if (isEmpty(berriesInfo) || isEmpty(berries)) {
+      try {
+        this.setState({isLoading: true});
+        const newBerriesInfo = (await axios('https://pokeapi.co/api/v2/berry/?limit=20')).data;
+        onAddBerriesInfo(newBerriesInfo);
+        const berriesURLs = newBerriesInfo.results.map((el) => el.url);
+        const newBerries = await this.fetchBerries(berriesURLs);
+        onAddBerries(newBerries);
+        if (this._isMounted) {
+          this.setState({isLoading: false});
+        }
+      } catch (error) {
+        if (this._isMounted) {
+          this.setState({error});
+        }
+      } finally {
+        if (this._isMounted) {
+          this.setState({isLoading: false});
+        }
+      }
     }
-  }
-
-  componentWillUnmount() {
-    this._isMounted = false;
   }
 
   handleClickButton = async () => {
-    const {allBerriesInfo: stateAllBerriesInfo, berries: stateBerries} = this.state;
+    const {berriesInfo: prevBerriesInfo, onAddBerries, onAddBerriesInfo} = this.props;
     try {
-      const nextCommonInfo = (await axios(stateAllBerriesInfo.next)).data;
+      const nextCommonInfo = (await axios(prevBerriesInfo.next)).data;
+      onAddBerriesInfo(nextCommonInfo);
       const berriesURLs = nextCommonInfo.results.map((el) => el.url);
       const newBerries = await this.fetchBerries(berriesURLs);
-      this._isMounted && this.setState({
-        allBerriesInfo: {
-          ...nextCommonInfo,
-          results: [...stateAllBerriesInfo.results, ...nextCommonInfo.results],
-        },
-        berries: [...stateBerries, ...newBerries],
-        isLoading: false,
-      });
+      onAddBerries(newBerries);
+      if (this._isMounted) {
+        this.setState({isLoading: false});
+      }
     } catch (error) {
-      this._isMounted && this.setState({error});
+      if (this._isMounted) {
+        this.setState({error});
+      }
     } finally {
-      this._isMounted && this.setState({isLoading: false});
+      if (this._isMounted) {
+        this.setState({isLoading: false});
+      }
     }
-  }
-
-  handleSearch = (event) => {
-    event.preventDefault();
   }
 
   handleChangeSearchText = (event) => {
@@ -145,31 +149,54 @@ class Catalogue extends Component {
 
     for (let i = 0; i < berriesURLs.length;) {
       let requestsNumber = 5;
+      /* eslint-disable no-await-in-loop */
       while (urls.length > 0 && requestsNumber > 0) {
         const url = urls.shift();
         requestBuffer.push(axios(url));
-        requestsNumber--;
+        requestsNumber -= 1;
       }
       const loadedBerries = await axios.all(requestBuffer);
       berries.push(...loadedBerries.map((el) => el.data));
       requestBuffer.length = 0;
       i += requestsNumber;
+      /* eslint-enable no-await-in-loop */
     }
 
     return berries;
   }
 
+  renderTable = () => {
+    const {
+      classes,
+      berriesInfo,
+      berries,
+    } = this.props;
+    const {
+      filteredBerries,
+      searchTerm,
+      isLoading,
+    } = this.state;
+    const list = searchTerm ? filteredBerries : berries;
+
+    return (
+      <div>
+        <Table list={list} />
+        {berriesInfo?.next && (
+        <LoadingButton
+          isLoading={isLoading}
+          onClick={this.handleClickButton}
+          className={classes.loadingButton}
+        >
+          More
+        </LoadingButton>
+        )}
+      </div>
+    );
+  }
+
   render() {
     const {classes} = this.props;
-    const {
-      allBerriesInfo,
-      berries,
-      filteredBerries,
-      isLoading,
-      searchTerm,
-    } = this.state;
-
-    const list = searchTerm ? filteredBerries : berries;
+    const {searchTerm, isLoading} = this.state;
 
     return (
       <div className={classes.root}>
@@ -182,40 +209,34 @@ class Catalogue extends Component {
               <div className={classes.searchIcon}>
                 <SearchIcon />
               </div>
-              <form onSubmit={this.handleSearch}>
-                <InputBase
-                  value={searchTerm}
-                  placeholder='Search…'
-                  classes={{
-                    root: classes.inputRoot,
-                    input: classes.inputInput,
-                  }}
-                  inputProps={{'aria-label': 'search'}}
-                  onChange={this.handleChangeSearchText}
-                />
-              </form>
+              <InputBase
+                value={searchTerm}
+                placeholder='Search…'
+                classes={{
+                  root: classes.inputRoot,
+                  input: classes.inputInput,
+                }}
+                inputProps={{'aria-label': 'search'}}
+                onChange={this.handleChangeSearchText}
+              />
             </div>
           </Toolbar>
         </AppBar>
-        {isLoading
-          ? <CircularProgress />
-          : (
-            <div>
-              <Table list={list} />
-              {allBerriesInfo?.next && (
-                <LoadingButton
-                  isLoading={isLoading}
-                  onClick={this.handleClickButton}
-                  className={classes.loadingButton}
-                >
-                  More
-                </LoadingButton>
-              )}
-            </div>
-          )}
+        {isLoading ? <CircularProgress /> : this.renderTable()}
       </div>
     );
   }
 }
 
-export default withStyles(useStyles)(Catalogue);
+const mapDispatchToProps = (dispatch) => ({
+  onAddBerries: (berries) => dispatch(doAddBerries(berries)),
+  onAddBerriesInfo: (berriesInfo) => dispatch(doAddBerriesInfo(berriesInfo)),
+});
+
+const mapStateToProps = (state) => ({
+  berries: state.berriesState.berries,
+  berriesInfo: state.berriesInfoState.berriesInfo,
+  error: state.berriesState.error,
+});
+
+export default connect(mapStateToProps, mapDispatchToProps)(withStyles(useStyles)(Catalogue));

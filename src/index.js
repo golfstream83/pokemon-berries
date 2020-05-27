@@ -1,12 +1,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import {BrowserRouter} from 'react-router-dom';
 import './index.css';
 import {createMuiTheme, ThemeProvider} from '@material-ui/core/styles';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import blueGrey from '@material-ui/core/colors/blueGrey';
+import {Provider} from 'react-redux';
 import * as serviceWorker from './serviceWorker';
 import App from './App';
+import store from './store';
 
 const theme = createMuiTheme({
   palette: {
@@ -25,12 +26,12 @@ const theme = createMuiTheme({
 
 ReactDOM.render(
   <React.StrictMode>
-    <BrowserRouter>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-          <App />
-      </ThemeProvider>
-    </BrowserRouter>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Provider store={store}>
+        <App />
+      </Provider>
+    </ThemeProvider>
   </React.StrictMode>,
   // eslint-disable-next-line no-undef
   document.getElementById('root'),

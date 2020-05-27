@@ -1,10 +1,5 @@
 import {sortBy} from 'lodash';
 
-export const PATH_BASE = 'https://pokeapi.co/api/v2/berry';
-export const DEFAULT_LIMIT = '20';
-export const DEFAULT_OFFSET = '0';
-export const PARAM_LIMIT = 'limit=';
-export const PARAM_OFFSET = 'offset=';
 export const SORTS = {
   NONE: (list) => list,
   NAME: (list) => sortBy(list, 'name'),
@@ -12,3 +7,8 @@ export const SORTS = {
   MAX_HARVEST: (list) => sortBy(list, 'max-harvest'),
   FIRMNESS: (list) => sortBy(list, [(el) => el.firmness.name]),
 };
+
+export const BERRIES_ADD = 'BERRIES_ADD';
+export const BERRIES_FETCH_ERROR = 'BERRIES_FETCH_ERROR';
+export const BERRIES_INFO_ADD = 'BERRIES_INFO_ADD';
+export const BERRIES_INFO_FETCH_ERROR = 'BERRIES_INFO_FETCH_ERROR';
