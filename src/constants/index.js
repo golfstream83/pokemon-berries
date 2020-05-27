@@ -1,5 +1,7 @@
 import {sortBy} from 'lodash';
 
+export const BERRIES_INFO_LOADING_DEFAULT_URL = 'https://pokeapi.co/api/v2/berry/?limit=20';
+
 export const SORTS = {
   NONE: (list) => list,
   NAME: (list) => sortBy(list, 'name'),
