@@ -9,7 +9,7 @@ export const LoadingButton = ({
 }) => (
   <Button
     variant='contained'
-    color='secondary'
+    color='primary'
     disabled={isLoading}
     onClick={onClick}
     className={className}

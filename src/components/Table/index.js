@@ -1,7 +1,8 @@
 import React, {Component} from 'react';
-import Link from '@material-ui/core/Link';
 import Button from '@material-ui/core/Button';
 import {withStyles} from '@material-ui/core/styles';
+import {NavLink} from 'react-router-dom';
+import Typography from '@material-ui/core/Typography';
 import {SortButton} from '../SortButton';
 import {SORTS} from '../../constants';
 
@@ -50,7 +51,7 @@ class Table extends Component {
   render() {
     const {classes, list} = this.props;
     const {sortKey, isSortReverse} = this.state;
-    const sortedList = SORTS[sortKey](list);
+    const sortedList = SORTS[sortKey](list) || [];
     const reverseSortedList = isSortReverse ? sortedList.reverse() : sortedList;
 
     return (
@@ -97,7 +98,7 @@ class Table extends Component {
             </SortButton>
           </span>
           <span className={classes.column}>
-            <Button disabled>
+            <Button color='primary'>
               Details
             </Button>
           </span>
@@ -118,9 +119,13 @@ class Table extends Component {
               {item.firmness.name}
             </span>
             <span className={classes.column}>
-              <Link href='#' onClick={this.handleClickButton}>
-                more details...
-              </Link>
+              <Typography variant='body2' color='inherit'>
+                <NavLink
+                  to={`/berries/${item.id}`}
+                >
+                  more details...
+                </NavLink>
+              </Typography>
             </span>
           </div>
         ))}
